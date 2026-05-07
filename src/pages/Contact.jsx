@@ -11,12 +11,7 @@ const topics = [
 ]
 
 const contacts = [
-  { label: 'General',     email: 'admin@hubgenius.finance',       desc: 'General enquiries and feedback' },
-  { label: 'Support',     email: 'admin@hubgenius.finance',     desc: 'Technical issues and account help' },
-  { label: 'Legal',       email: 'admin@hubgenius.finance',       desc: 'Legal, compliance, and terms' },
-  { label: 'Privacy',     email: 'admin@hubgenius.finance',     desc: 'Data requests and privacy matters' },
-  { label: 'Partnerships',email: 'admin@hubgenius.finance',    desc: 'Business development and partnerships' },
-  { label: 'Press',       email: 'admin@hubgenius.finance',       desc: 'Media enquiries and press kit' },
+  { label: 'All enquiries', email: 'admin@hubgenius.finance', desc: 'General, support, legal, partnerships, press — all enquiries welcome' },
 ]
 
 export default function Contact() {
