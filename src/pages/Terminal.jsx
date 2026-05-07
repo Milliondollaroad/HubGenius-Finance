@@ -1,15 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ASSETS, NEWS, TWEETS } from '../data'
-
-const MACRO = [
-  { label: 'Fear & Greed', val: '72',    sub: 'Greed',    dir: 'up'   },
-  { label: 'BTC dom.',     val: '62.4%', sub: '▲ +0.8%',  dir: 'up'   },
-  { label: 'Mkt cap',      val: '$3.42T',sub: '▲ +$84B',  dir: 'up'   },
-  { label: 'Global M2',    val: '$108T', sub: 'Expanding', dir: 'up'   },
-  { label: 'DXY',          val: '99.84', sub: '▼ Weak',    dir: 'down' },
-  { label: 'US 10Y',       val: '4.32%', sub: 'Stable',    dir: 'neu'  },
-]
+import { ASSET_BASE, NEWS, TWEETS, RATES } from '../data'
+import { usePrices }   from '../context/PricesContext'
+import { useCurrency } from '../context/CurrencyContext'
+import { formatLivePrice } from '../utils'
+import CurrencyToggle from '../components/CurrencyToggle'
 
 function sentColor(s) {
   if (s === 'Bullish') return { bg: 'var(--green-bg)', color: 'var(--green)' }
@@ -17,18 +12,41 @@ function sentColor(s) {
   return { bg: 'var(--off2)', color: 'var(--text3)' }
 }
 
+const MACRO_STATIC = [
+  { label: 'Fear & Greed', val: '47',    sub: 'Neutral',   dir: 'neu', live: false },
+  { label: 'BTC dom.',     val: '62.4%', sub: '▲ +0.8%',   dir: 'up',  live: false },
+  { label: 'Mkt cap',      val: '$3.2T', sub: 'Live data',  dir: 'up',  live: false },
+  { label: 'Global M2',    val: '$108T', sub: 'Expanding',  dir: 'up',  live: false },
+  { label: 'DXY',          val: null,    sub: '24h chg',    dir: 'up',  live: true, key: 'DXY'  },
+  { label: 'US 10Y',       val: null,    sub: 'Yield',      dir: 'neu', live: true, key: 'US10Y'},
+]
+
 export default function Terminal() {
-  const location = useLocation()
-  const [selId, setSelId]     = useState(location.state?.asset || 'BTC')
-  const [tf, setTf]           = useState('60')
+  const location          = useLocation()
+  const { prices, loading, lastUpdate, refetch } = usePrices()
+  const { currency }      = useCurrency()
+  const [selId, setSelId] = useState(location.state?.asset || 'BTC')
+  const [tf, setTf]       = useState('60')
   const [sigOpen, setSigOpen] = useState(false)
-  const chartRef              = useRef(null)
+  const chartRef          = useRef(null)
 
   useEffect(() => {
     if (location.state?.asset) setSelId(location.state.asset)
   }, [location.state])
 
-  const a = ASSETS[selId]
+  const base   = ASSET_BASE[selId]
+  const live   = prices[selId]
+  const liveUSD = live?.usd
+  const livePx  = formatLivePrice(liveUSD, currency)
+  const liveChg = live?.chg ?? '—'
+  const liveDir = live?.dir ?? 'up'
+
+  // Compute entry/sl/tp from live price
+  const { symbol } = RATES[currency]
+  const rate = RATES[currency].rate
+  const entryLive = liveUSD ? formatLivePrice(liveUSD * 0.997, currency) : base.entryUSD
+  const slLive    = liveUSD ? `${formatLivePrice(liveUSD * 0.970, currency)} (-3.0%)` : '—'
+  const tpLive    = liveUSD ? `${formatLivePrice(liveUSD * 1.060, currency)} (+6.0%)` : '—'
 
   useEffect(() => {
     if (!chartRef.current) return
@@ -38,10 +56,10 @@ export default function Terminal() {
     script.type = 'text/javascript'
     script.async = true
     script.innerHTML = JSON.stringify({
-      autosize: true, symbol: a.sym, interval: tf,
+      autosize: true, symbol: base.sym, interval: tf,
       timezone: 'Etc/UTC', theme: 'light', style: '1', locale: 'en',
-      backgroundColor: '#ffffff', hide_top_toolbar: false,
-      hide_legend: false, save_image: false,
+      backgroundColor: '#ffffff', currency_id: 'USD',
+      hide_top_toolbar: false, hide_legend: false, save_image: false,
       studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
       support_host: 'https://www.tradingview.com'
     })
@@ -57,24 +75,24 @@ export default function Terminal() {
   return (
     <div className="terminal-layout" style={{ display: 'flex', flexDirection: 'row', height: 'calc(100vh - 112px)', overflow: 'hidden', background: 'var(--white)' }}>
 
-      {/* Sidebar — desktop: vertical | mobile: horizontal scroll */}
-      <div className="terminal-sidebar" style={{ width: 210, background: 'var(--off)', borderRight: '1px solid var(--border)', overflowY: 'auto', flexShrink: 0 }}>
+      {/* Sidebar */}
+      <div className="terminal-sidebar" style={{ width: 220, background: 'var(--off)', borderRight: '1px solid var(--border)', overflowY: 'auto', flexShrink: 0 }}>
 
-        {/* Desktop sidebar header */}
-        <div className="hide-mobile" style={{ padding: '9px 14px', background: 'var(--navy)', borderBottom: '2px solid var(--gold2)', position: 'sticky', top: 0 }}>
-          <span style={{ fontSize: 9, color: 'var(--gold3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 2, textTransform: 'uppercase' }}>Markets</span>
-        </div>
-
-        {/* Desktop asset list */}
+        {/* Desktop */}
         <div className="hide-mobile">
+          <div style={{ padding: '9px 14px', background: 'var(--navy)', borderBottom: '2px solid var(--gold2)', position: 'sticky', top: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 9, color: 'var(--gold3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 2, textTransform: 'uppercase' }}>Markets</span>
+            {lastUpdate && <span style={{ fontSize: 8, color: 'rgba(255,255,255,.4)', fontFamily: 'Source Code Pro, monospace' }}>Live</span>}
+          </div>
           {cats.map(cat => (
             <div key={cat.label} style={{ paddingBottom: 4 }}>
               <div style={{ fontSize: 8, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 2, textTransform: 'uppercase', padding: '8px 14px 5px', borderBottom: '1px solid var(--border)' }}>{cat.label}</div>
               {cat.ids.map(id => {
-                const d = ASSETS[id]
+                const lp     = prices[id]
                 const active = selId === id
+                const px     = formatLivePrice(lp?.usd, currency)
                 return (
-                  <button key={id} onClick={() => setSelId(id)} className={`terminal-asset-btn${active ? ' active' : ''}`} style={{
+                  <button key={id} onClick={() => setSelId(id)} style={{
                     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '7px 14px', background: active ? 'var(--gold-light)' : 'transparent',
                     border: 'none', borderLeft: `3px solid ${active ? 'var(--gold2)' : 'transparent'}`,
@@ -82,12 +100,14 @@ export default function Terminal() {
                   }}>
                     <div>
                       <div style={{ fontSize: 11, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, color: 'var(--text)' }}>{id}</div>
-                      <div style={{ fontSize: 8, color: 'var(--text3)', marginTop: 1 }}>{d.name.split('/')[0].trim()}</div>
+                      <div style={{ fontSize: 8, color: 'var(--text3)', marginTop: 1 }}>{ASSET_BASE[id].name}</div>
                     </div>
-                    <div className="terminal-asset-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                      <span className={d.dir} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace', fontWeight: 500 }}>{d.px}</span>
-                      <span className={d.dir} style={{ fontSize: 8, fontFamily: 'Source Code Pro, monospace' }}>{d.chg}</span>
-                      <span className={`sp sp-${d.sig === 'BUY' ? 'b' : d.sig === 'SELL' ? 's' : 'h'}`} style={{ fontSize: 8, padding: '1px 5px' }}>{d.sig}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                      <span className={lp?.dir ?? 'up'} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace', fontWeight: 500 }}>
+                        {loading ? '...' : px}
+                      </span>
+                      {lp?.chg && <span className={lp.dir} style={{ fontSize: 8, fontFamily: 'Source Code Pro, monospace' }}>{lp.chg}</span>}
+                      <span className={`sp sp-${ASSET_BASE[id].sig === 'BUY' ? 'b' : ASSET_BASE[id].sig === 'SELL' ? 's' : 'h'}`} style={{ fontSize: 8, padding: '1px 5px' }}>{ASSET_BASE[id].sig}</span>
                     </div>
                   </button>
                 )
@@ -96,24 +116,25 @@ export default function Terminal() {
           ))}
         </div>
 
-        {/* Mobile horizontal asset scroll */}
-        <div className="hide-desktop terminal-sidebar-assets" style={{ display: 'flex', overflowX: 'auto', padding: 8, gap: 6, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+        {/* Mobile horizontal scroll */}
+        <div className="hide-desktop" style={{ display: 'flex', overflowX: 'auto', padding: 8, gap: 6, scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {['BTC','ETH','SOL','HYPE','TSLA','NVDA','AMD','GOLD','OIL'].map(id => {
-            const d = ASSETS[id]
+            const lp     = prices[id]
             const active = selId === id
+            const px     = formatLivePrice(lp?.usd, currency)
             return (
               <button key={id} onClick={() => setSelId(id)} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
-                minWidth: 68, padding: '8px 10px',
+                minWidth: 72, padding: '8px 10px',
                 background: active ? 'var(--gold-light)' : 'var(--white)',
                 border: '1px solid var(--border)',
                 borderBottom: `2px solid ${active ? 'var(--gold2)' : 'var(--border)'}`,
                 cursor: 'pointer', flexShrink: 0, borderRadius: 4
               }}>
                 <div style={{ fontSize: 11, fontFamily: 'Source Code Pro, monospace', fontWeight: 700, color: 'var(--navy)' }}>{id}</div>
-                <div className={d.dir} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, marginTop: 2 }}>{d.px}</div>
-                <div className={d.dir} style={{ fontSize: 9, fontFamily: 'Source Code Pro, monospace', marginTop: 1 }}>{d.chg}</div>
-                <span className={`sp sp-${d.sig === 'BUY' ? 'b' : d.sig === 'SELL' ? 's' : 'h'}`} style={{ fontSize: 8, padding: '1px 5px', marginTop: 3 }}>{d.sig}</span>
+                <div className={lp?.dir ?? 'up'} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, marginTop: 2 }}>{loading ? '...' : px}</div>
+                {lp?.chg && <div className={lp.dir} style={{ fontSize: 9, fontFamily: 'Source Code Pro, monospace', marginTop: 1 }}>{lp.chg}</div>}
+                <span className={`sp sp-${ASSET_BASE[id].sig === 'BUY' ? 'b' : ASSET_BASE[id].sig === 'SELL' ? 's' : 'h'}`} style={{ fontSize: 8, padding: '1px 5px', marginTop: 3 }}>{ASSET_BASE[id].sig}</span>
               </button>
             )
           })}
@@ -125,31 +146,36 @@ export default function Terminal() {
 
         {/* Macro strip */}
         <div className="macro-strip" style={{ display: 'flex', borderBottom: '2px solid var(--gold2)', flexShrink: 0, background: 'var(--off)', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {MACRO.map((m, i) => (
-            <div key={m.label} style={{ flex: 1, minWidth: 80, padding: '7px 10px', textAlign: 'center', borderRight: i < MACRO.length - 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ fontSize: 8, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>{m.label}</div>
-              <div className={m.dir} style={{ fontSize: 13, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, lineHeight: 1 }}>{m.val}</div>
-              <div className={m.dir} style={{ fontSize: 8, marginTop: 1, fontFamily: 'Source Code Pro, monospace' }}>{m.sub}</div>
-            </div>
-          ))}
+          {MACRO_STATIC.map((m, i) => {
+            const val = m.live ? (m.key === 'US10Y' ? (prices[m.key]?.usd ? `${prices[m.key].usd.toFixed(2)}%` : '—') : prices[m.key]?.usd?.toFixed(2) ?? '—') : m.val
+            const dir = m.live ? (prices[m.key]?.dir ?? m.dir) : m.dir
+            const sub = m.live ? (prices[m.key]?.chg ?? m.sub) : m.sub
+            return (
+              <div key={m.label} style={{ flex: 1, minWidth: 80, padding: '7px 10px', textAlign: 'center', borderRight: i < MACRO_STATIC.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ fontSize: 8, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>{m.label}</div>
+                <div className={dir} style={{ fontSize: 13, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, lineHeight: 1 }}>{val}</div>
+                <div className={dir} style={{ fontSize: 8, marginTop: 1, fontFamily: 'Source Code Pro, monospace' }}>{sub}</div>
+              </div>
+            )
+          })}
         </div>
 
         {/* Chart header */}
-        <div className="terminal-chart-header" style={{ padding: '10px 16px', background: 'var(--off)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 8, position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap' }}>
+        <div style={{ padding: '10px 16px', background: 'var(--off)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: 8, position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>{a.name}</div>
+              <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>{base.name} / {RATES[currency].label}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 1 }}>
-                <span className={a.dir} style={{ fontSize: 17, fontFamily: 'Source Code Pro, monospace', fontWeight: 500 }}>{a.px}</span>
-                <span className={a.dir} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace' }}>{a.chg}</span>
+                <span className={liveDir} style={{ fontSize: 17, fontFamily: 'Source Code Pro, monospace', fontWeight: 500 }}>{loading ? 'Loading...' : livePx}</span>
+                <span className={liveDir} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace' }}>{liveChg}</span>
               </div>
             </div>
             <div style={{ borderLeft: '1px solid var(--border)', paddingLeft: 12 }}>
               <div style={{ fontSize: 8, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>AI Signal</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className={a.sig === 'BUY' ? 'up' : a.sig === 'SELL' ? 'down' : 'neu'}
-                  style={{ fontFamily: 'Playfair Display, serif', fontSize: 18, fontWeight: 600 }}>{a.sig}</span>
-                <span style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace' }}>{a.conf}</span>
+                <span className={base.sig === 'BUY' ? 'up' : base.sig === 'SELL' ? 'down' : 'neu'}
+                  style={{ fontFamily: 'Playfair Display, serif', fontSize: 18, fontWeight: 600 }}>{base.sig}</span>
+                <span style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace' }}>{base.conf}</span>
                 <button onClick={() => setSigOpen(o => !o)} style={{ background: 'transparent', border: '1px solid var(--border2)', color: 'var(--text2)', padding: '2px 8px', fontSize: 9, fontFamily: 'Source Code Pro, monospace', cursor: 'pointer' }}>
                   {sigOpen ? 'Hide ▲' : 'Detail ▼'}
                 </button>
@@ -170,11 +196,15 @@ export default function Terminal() {
 
         {/* Signal detail */}
         {sigOpen && (
-          <div className="signal-detail-grid" style={{ background: 'var(--gold-light)', borderBottom: '1px solid var(--gold3)', padding: '12px 16px', display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 12, flexShrink: 0 }} className="fade-in">
-            {[['Direction',a.sd,a.sig==='BUY'?'up':a.sig==='SELL'?'down':''],
-              ['Entry',a.entry,''],['Stop loss',a.sl,'down'],
-              ['Take profit',a.tp,'up'],['Risk/reward','2:1','up'],['Confidence',a.conf,'up']
-            ].map(([label,val,cls]) => (
+          <div style={{ background: 'var(--gold-light)', borderBottom: '1px solid var(--gold3)', padding: '12px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(100px,1fr))', gap: 12, flexShrink: 0 }}>
+            {[
+              ['Direction',  base.sd,   base.sig === 'BUY' ? 'up' : base.sig === 'SELL' ? 'down' : ''],
+              ['Entry',      entryLive, ''],
+              ['Stop loss',  slLive,    'down'],
+              ['Take profit',tpLive,    'up'],
+              ['Risk/reward','2 : 1',   'up'],
+              ['Confidence', base.conf, 'up'],
+            ].map(([label, val, cls]) => (
               <div key={label}>
                 <div style={{ fontSize: 8, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
                 <div className={cls} style={{ fontSize: 12, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, color: 'var(--navy)' }}>{val}</div>
@@ -183,7 +213,7 @@ export default function Terminal() {
           </div>
         )}
 
-        {/* Chart — full height on desktop, fixed on mobile */}
+        {/* Full height chart */}
         <div ref={chartRef} className="tradingview-widget-container terminal-chart"
           style={{ width: '100%', height: 'calc(100vh - 240px)', minHeight: 320, flexShrink: 0 }}>
           <div className="tradingview-widget-container__widget" style={{ height: '100%', width: '100%' }} />
@@ -220,7 +250,6 @@ export default function Terminal() {
             </div>
           ))}
         </div>
-
       </div>
     </div>
   )

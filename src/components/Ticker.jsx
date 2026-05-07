@@ -1,33 +1,82 @@
 import { useNavigate } from 'react-router-dom'
+import { usePrices }   from '../context/PricesContext'
+import { useCurrency } from '../context/CurrencyContext'
+import { formatLivePrice } from '../utils'
+import CurrencyToggle from './CurrencyToggle'
 
-const tickers = [
-  {name:'BTC/USD',px:'104,230.00',chg:'▲ 2.14%',dir:'up', id:'BTC'},
-  {name:'ETH/USD',px:'3,847.00',  chg:'▲ 1.42%',dir:'up', id:'ETH'},
-  {name:'SOL/USD',px:'178.40',    chg:'▲ 3.21%',dir:'up', id:'SOL'},
-  {name:'TSLA',   px:'312.50',    chg:'▼ 0.82%',dir:'down',id:'TSLA'},
-  {name:'NVDA',   px:'1,089.00',  chg:'▲ 1.92%',dir:'up', id:'NVDA'},
-  {name:'AMD',    px:'176.20',    chg:'▲ 0.71%',dir:'up', id:'AMD'},
-  {name:'GOLD',   px:'3,324.00',  chg:'▲ 0.44%',dir:'up', id:'GOLD'},
-  {name:'WTI',    px:'58.90',     chg:'▼ 1.21%',dir:'down',id:'OIL'},
-  {name:'DXY',    px:'99.84',     chg:'▼ 0.31%',dir:'down',id:null},
-  {name:'US10Y',  px:'4.32%',     chg:'→ Stable',dir:'neu',id:null},
-]
+const TICKER_IDS = ['BTC','ETH','SOL','HYPE','TSLA','NVDA','AMD','GOLD','OIL']
 
-export default function Ticker(){
-  const navigate=useNavigate()
-  return(
-    <div style={{background:'var(--off)',borderBottom:'1px solid var(--border)',padding:'7px 16px',display:'flex',gap:16,overflowX:'auto',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
-      {tickers.map((t,i)=>(
-        <div key={i} style={{display:'flex',alignItems:'center',gap:16,flexShrink:0}}>
-          {i>0&&<span style={{width:1,height:14,background:'var(--border2)',flexShrink:0}}/>}
-          <div onClick={()=>t.id&&navigate('/terminal',{state:{asset:t.id}})}
-            style={{display:'flex',alignItems:'center',gap:6,cursor:t.id?'pointer':'default',flexShrink:0}}>
-            <span style={{fontSize:10,color:'var(--text3)',fontFamily:'Source Code Pro,monospace',letterSpacing:1,fontWeight:500}}>{t.name}</span>
-            <span style={{fontSize:11,fontFamily:'Source Code Pro,monospace',fontWeight:500,color:'var(--text)'}}>{t.px}</span>
-            <span className={t.dir} style={{fontSize:10,fontFamily:'Source Code Pro,monospace',fontWeight:500}}>{t.chg}</span>
+export default function Ticker() {
+  const navigate          = useNavigate()
+  const { prices, loading, lastUpdate } = usePrices()
+  const { currency }      = useCurrency()
+
+  return (
+    <div style={{ background: 'var(--off)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center' }}>
+
+      {/* Currency toggle */}
+      <div style={{ padding: '6px 12px', borderRight: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+        <CurrencyToggle compact={true} />
+      </div>
+
+      {/* Live prices scroll */}
+      <div style={{ display: 'flex', gap: 0, overflowX: 'auto', padding: '7px 12px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', flex: 1, alignItems: 'center' }}>
+        {TICKER_IDS.map((id, i) => {
+          const p  = prices[id]
+          const px = formatLivePrice(p?.usd, currency)
+          return (
+            <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+              {i > 0 && <span style={{ width: 1, height: 14, background: 'var(--border2)', flexShrink: 0, marginRight: 0 }} />}
+              <div onClick={() => navigate('/terminal', { state: { asset: id } })}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flexShrink: 0, paddingRight: 16 }}>
+                <span style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, fontWeight: 500 }}>{id}</span>
+                <span style={{ fontSize: 11, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, color: loading ? 'var(--text4)' : 'var(--text)' }}>
+                  {loading ? '...' : px}
+                </span>
+                {!loading && p?.chg && (
+                  <span className={p.dir} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace', fontWeight: 500 }}>{p.chg}</span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+
+        {/* DXY */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+          <span style={{ width: 1, height: 14, background: 'var(--border2)', flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, paddingRight: 16 }}>
+            <span style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, fontWeight: 500 }}>DXY</span>
+            <span style={{ fontSize: 11, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, color: 'var(--text)' }}>
+              {loading ? '...' : prices.DXY?.usd?.toFixed(2) ?? '—'}
+            </span>
+            {!loading && prices.DXY?.chg && (
+              <span className={prices.DXY.dir} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace', fontWeight: 500 }}>{prices.DXY.chg}</span>
+            )}
           </div>
         </div>
-      ))}
+
+        {/* US10Y */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+          <span style={{ width: 1, height: 14, background: 'var(--border2)', flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            <span style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, fontWeight: 500 }}>US10Y</span>
+            <span style={{ fontSize: 11, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, color: 'var(--text)' }}>
+              {loading ? '...' : prices.US10Y?.usd ? `${prices.US10Y.usd.toFixed(2)}%` : '—'}
+            </span>
+          </div>
+        </div>
+
+        {/* Last update */}
+        {lastUpdate && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+            <span style={{ width: 1, height: 14, background: 'var(--border2)', flexShrink: 0 }} />
+            <span style={{ fontSize: 9, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace', paddingLeft: 8 }}>
+              <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: 'var(--green-mid)', marginRight: 4, verticalAlign: 'middle', animation: 'blink 1.5s infinite' }} />
+              Live · {lastUpdate.toLocaleTimeString()}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
