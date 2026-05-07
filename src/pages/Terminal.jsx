@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ASSETS, NEWS, TWEETS } from '../data'
 
@@ -21,7 +21,10 @@ export default function Terminal() {
   const location = useLocation()
   const initId = location.state?.asset || 'BTC'
   const [selId, setSelId]     = useState(initId)
-  const [tf, setTf]           = useState('60')
+  const setTf = (val) => {
+    setTf_state(val)
+  }
+  const [tf, setTf_state] = useState('60')
   const [sigOpen, setSigOpen] = useState(false)
 
   useEffect(() => {
@@ -30,7 +33,34 @@ export default function Terminal() {
 
   const a = ASSETS[selId]
 
-  const tvUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tv&symbol=${encodeURIComponent(a.sym)}&interval=${tf}&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=0&saveimage=0&studies=RSI%40tv-basicstudies%2CMACD%40tv-basicstudies&theme=light&style=1&timezone=Etc%2FUTC&withdateranges=1&showpopupbutton=0&overrides=%7B%22paneProperties.background%22%3A%22%23f8f6f1%22%2C%22paneProperties.vertGridProperties.color%22%3A%22%23e8e3d8%22%2C%22paneProperties.horzGridProperties.color%22%3A%22%23e8e3d8%22%2C%22mainSeriesProperties.candleStyle.upColor%22%3A%22%231a6b3a%22%2C%22mainSeriesProperties.candleStyle.downColor%22%3A%22%238b1a1a%22%7D&enabled_features=header_indicators&disabled_features=use_localstorage_for_settings&locale=en`
+  const chartContainerRef = useRef(null)
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return
+    chartContainerRef.current.innerHTML = ''
+    const script = document.createElement('script')
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
+    script.type = 'text/javascript'
+    script.async = true
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: a.sym,
+      interval: tf,
+      timezone: 'Etc/UTC',
+      theme: 'light',
+      style: '1',
+      locale: 'en',
+      backgroundColor: '#f8f6f1',
+      gridColor: '#e8e3d8',
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: false,
+      calendar: false,
+      studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
+      support_host: 'https://www.tradingview.com'
+    })
+    chartContainerRef.current.appendChild(script)
+  }, [selId, tf])
 
   const cats = [
     { label: 'Cryptocurrency',     ids: ['BTC','ETH','SOL','HYPE'] },
@@ -101,7 +131,7 @@ export default function Terminal() {
             </div>
             <div style={{ display: 'flex', gap: 3 }}>
               {[['1','1m'],['5','5m'],['15','15m'],['60','1H'],['240','4H'],['D','1D']].map(([v,l]) => (
-                <button key={v} onClick={() => setTf(v)} style={{
+                <button key={v} onClick={() => setTf_state(v)} style={{
                   background: tf === v ? 'var(--navy)' : 'var(--white)',
                   color: tf === v ? 'var(--gold3)' : 'var(--text3)',
                   border: '1px solid var(--border2)', padding: '4px 8px',
@@ -110,7 +140,9 @@ export default function Terminal() {
               ))}
             </div>
           </div>
-          <iframe key={`${selId}-${tf}`} src={tvUrl} style={{ width: '100%', height: 340, border: 'none', display: 'block' }} title={`${selId} chart`} />
+          <div className="tradingview-widget-container" ref={chartContainerRef} style={{ width: '100%', height: 400 }}>
+            <div className="tradingview-widget-container__widget" style={{ height: '100%', width: '100%' }}></div>
+          </div>
         </div>
 
         {/* Signal */}
