@@ -4,6 +4,7 @@ import { ALL_ASSETS, CRYPTO, EQUITIES, COMMODITIES, FOREX, INDICES, ASSET_META, 
 import { usePrices }   from '../context/PricesContext'
 import { useCurrency } from '../context/CurrencyContext'
 import { useNews }     from '../context/NewsContext'
+import { useMacro }    from '../context/MacroContext'
 
 function sentColor(s) {
   if (s === 'Bullish') return { bg: 'var(--green-bg)', color: 'var(--green)' }
@@ -21,59 +22,52 @@ function fmtPrice(usd, currency) {
   return `${symbol}${v.toFixed(6)}`
 }
 
-const TABS = ['All', 'Crypto', 'Equities', 'Commodities', 'Forex', 'Indices']
-const TAB_DATA = {
+const TABS      = ['All', 'Crypto', 'Equities', 'Commodities', 'Forex', 'Indices']
+const TAB_DATA  = {
   All:         ALL_ASSETS,
   Crypto:      CRYPTO.map(a      => ({ ...a, cat: 'Crypto'      })),
   Equities:    EQUITIES.map(a    => ({ ...a, cat: 'Equities'    })),
   Commodities: COMMODITIES.map(a => ({ ...a, cat: 'Commodities' })),
-  Forex:       FOREX.map(a       => ({ ...a, cat: 'Forex'        })),
-  Indices:     INDICES.map(a     => ({ ...a, cat: 'Indices'      })),
+  Forex:       FOREX.map(a       => ({ ...a, cat: 'Forex'       })),
+  Indices:     INDICES.map(a     => ({ ...a, cat: 'Indices'     })),
 }
-
-const MACRO_ITEMS = [
-  { label: 'Fear & Greed', val: '47',    sub: 'Neutral',   dir: 'neu' },
-  { label: 'BTC dom.',     val: '62.4%', sub: '▲ +0.8%',   dir: 'up'  },
-  { label: 'Global M2',    val: '$108T', sub: 'Expanding',  dir: 'up'  },
-  { label: 'DXY',          liveKey: 'DXY',   dir: 'up'  },
-  { label: 'US 10Y',       liveKey: 'US10Y', dir: 'neu' },
-  { label: 'VIX',          liveKey: 'VIX',   dir: 'neu' },
-]
-
 const NEWS_CATS = ['All', 'Crypto', 'Markets', 'Stocks', 'Macro', 'Commodities']
+const REDDIT_TABS = ['All', 'r/wallstreetbets', 'r/CryptoCurrency', 'r/investing', 'r/Bitcoin', 'r/stocks']
 
 export default function Terminal() {
-  const location  = useLocation()
+  const location = useLocation()
   const { prices, loading: pricesLoading, lastUpdate } = usePrices()
-  const { currency }    = useCurrency()
+  const { currency }   = useCurrency()
   const { news, loading: newsLoading, lastUpdate: newsUpdate } = useNews()
+  const { fearGreed, globalCrypto, reddit, loading: macroLoading } = useMacro()
 
-  const [selId, setSelId]       = useState(location.state?.asset || 'BTC')
-  const [tf, setTf]             = useState('60')
-  const [sigOpen, setSigOpen]   = useState(false)
-  const [tab, setTab]           = useState('Crypto')
-  const [newsTab, setNewsTab]   = useState('All')
-  const [search, setSearch]     = useState('')
-  const chartRef                = useRef(null)
+  const [selId, setSelId]     = useState(location.state?.asset || 'BTC')
+  const [tf, setTf]           = useState('60')
+  const [sigOpen, setSigOpen] = useState(false)
+  const [tab, setTab]         = useState('Crypto')
+  const [newsTab, setNewsTab] = useState('All')
+  const [redditTab, setRedditTab] = useState('All')
+  const [feedView, setFeedView]   = useState('news') // 'news' | 'reddit' | 'x'
+  const [search, setSearch]   = useState('')
+  const chartRef              = useRef(null)
 
   useEffect(() => {
     if (location.state?.asset) setSelId(location.state.asset)
   }, [location.state])
 
-  const selAsset  = useMemo(() => ALL_ASSETS.find(a => a.id === selId) || ALL_ASSETS[0], [selId])
-  const liveP     = prices[selId]
-  const liveUSD   = liveP?.usd
-  const livePx    = fmtPrice(liveUSD, currency)
-  const liveChg   = liveP?.chg ?? '—'
-  const liveDir   = liveP?.dir ?? 'up'
-  const meta      = ASSET_META[selId] || { sig: 'HOLD', conf: '60%', sd: 'Neutral' }
-  const sigClass  = meta.sig === 'BUY' ? 'up' : meta.sig === 'SELL' ? 'down' : 'neu'
+  const selAsset = useMemo(() => ALL_ASSETS.find(a => a.id === selId) || ALL_ASSETS[0], [selId])
+  const liveP    = prices[selId]
+  const liveUSD  = liveP?.usd
+  const livePx   = fmtPrice(liveUSD, currency)
+  const liveChg  = liveP?.chg ?? '—'
+  const liveDir  = liveP?.dir ?? 'up'
+  const meta     = ASSET_META[selId] || { sig: 'HOLD', conf: '60%', sd: 'Neutral' }
+  const sigClass = meta.sig === 'BUY' ? 'up' : meta.sig === 'SELL' ? 'down' : 'neu'
 
   const entryLive = liveUSD ? fmtPrice(liveUSD * 0.997, currency) : '—'
   const slLive    = liveUSD ? `${fmtPrice(liveUSD * 0.970, currency)} (-3%)` : '—'
   const tpLive    = liveUSD ? `${fmtPrice(liveUSD * 1.060, currency)} (+6%)` : '—'
 
-  // Search
   const searchResults = useMemo(() => {
     if (!search.trim()) return []
     const q = search.toLowerCase()
@@ -82,16 +76,18 @@ export default function Terminal() {
     ).slice(0, 12)
   }, [search])
 
-  // Tab assets
   const tabAssets = useMemo(() => TAB_DATA[tab] || ALL_ASSETS, [tab])
 
-  // Filtered news
   const filteredNews = useMemo(() => {
     if (newsTab === 'All') return news.slice(0, 30)
     return news.filter(n => n.cat === newsTab).slice(0, 20)
   }, [news, newsTab])
 
-  // TradingView chart
+  const filteredReddit = useMemo(() => {
+    if (redditTab === 'All') return reddit.posts.slice(0, 20)
+    return reddit.posts.filter(p => p.sub === redditTab).slice(0, 15)
+  }, [reddit.posts, redditTab])
+
   useEffect(() => {
     if (!chartRef.current) return
     chartRef.current.innerHTML = ''
@@ -112,6 +108,52 @@ export default function Terminal() {
 
   const selectAsset = (id) => { setSelId(id); setSearch('') }
 
+  // Build macro strip with live data
+  const macroStrip = [
+    {
+      label: 'Fear & Greed',
+      val:   fearGreed ? String(fearGreed.value) : '—',
+      sub:   fearGreed ? fearGreed.label : 'Loading...',
+      dir:   fearGreed ? fearGreed.dir : 'neu',
+    },
+    {
+      label: 'BTC dom.',
+      val:   globalCrypto ? `${globalCrypto.btcDominance}%` : '—',
+      sub:   globalCrypto?.marketCapDir === 'up' ? '▲ Rising' : '▼ Falling',
+      dir:   globalCrypto?.marketCapDir ?? 'neu',
+    },
+    {
+      label: 'Total mkt cap',
+      val:   globalCrypto ? globalCrypto.totalMarketCapFormatted : '—',
+      sub:   globalCrypto ? `${globalCrypto.marketCapChange24h >= 0 ? '▲' : '▼'} ${Math.abs(globalCrypto.marketCapChange24h ?? 0).toFixed(2)}% 24h` : '',
+      dir:   (globalCrypto?.marketCapChange24h ?? 0) >= 0 ? 'up' : 'down',
+    },
+    {
+      label: 'WSB Sentiment',
+      val:   reddit.sentiment ? `${reddit.sentiment.score}%` : '—',
+      sub:   reddit.sentiment ? reddit.sentiment.label : 'Loading...',
+      dir:   reddit.sentiment?.dir ?? 'neu',
+    },
+    {
+      label: 'DXY',
+      val:   prices.DXY?.usd ? prices.DXY.usd.toFixed(2) : '—',
+      sub:   prices.DXY?.chg ?? '24h chg',
+      dir:   prices.DXY?.dir ?? 'up',
+    },
+    {
+      label: 'US 10Y',
+      val:   prices.US10Y?.usd ? `${prices.US10Y.usd.toFixed(2)}%` : '—',
+      sub:   prices.US10Y?.chg ?? 'Yield',
+      dir:   prices.US10Y?.dir ?? 'neu',
+    },
+    {
+      label: 'VIX',
+      val:   prices.VIX?.usd ? prices.VIX.usd.toFixed(2) : '—',
+      sub:   prices.VIX?.chg ?? 'Volatility',
+      dir:   prices.VIX?.dir ?? 'neu',
+    },
+  ]
+
   return (
     <div className="terminal-layout" style={{ display: 'flex', height: 'calc(100vh - 112px)', overflow: 'hidden', background: 'var(--white)' }}>
 
@@ -127,7 +169,6 @@ export default function Terminal() {
           <span style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text3)' }}>⌕</span>
           {search && <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 16 }}>×</button>}
 
-          {/* Search dropdown */}
           {searchResults.length > 0 && (
             <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--white)', border: '1px solid var(--border2)', borderTop: 'none', zIndex: 200, maxHeight: 300, overflowY: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,.12)' }}>
               {searchResults.map(a => {
@@ -207,21 +248,15 @@ export default function Terminal() {
       {/* ── MAIN PANEL ── */}
       <div className="terminal-right" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Macro strip */}
+        {/* Live macro strip */}
         <div className="macro-strip" style={{ display: 'flex', borderBottom: '2px solid var(--gold2)', flexShrink: 0, background: 'var(--off)', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {MACRO_ITEMS.map((m, i) => {
-            const lp  = m.liveKey ? prices[m.liveKey] : null
-            const val = lp?.usd ? (m.liveKey === 'US10Y' ? `${lp.usd.toFixed(2)}%` : lp.usd.toFixed(2)) : (m.val || '—')
-            const sub = lp?.chg ?? m.sub ?? ''
-            const dir = lp?.dir ?? m.dir
-            return (
-              <div key={m.label} style={{ flex: 1, minWidth: 80, padding: '7px 10px', textAlign: 'center', borderRight: i < MACRO_ITEMS.length - 1 ? '1px solid var(--border)' : 'none', flexShrink: 0 }}>
-                <div style={{ fontSize: 8, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>{m.label}</div>
-                <div className={dir} style={{ fontSize: 13, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, lineHeight: 1 }}>{val}</div>
-                <div className={dir} style={{ fontSize: 8, marginTop: 1, fontFamily: 'Source Code Pro, monospace' }}>{sub}</div>
-              </div>
-            )
-          })}
+          {macroStrip.map((m, i) => (
+            <div key={m.label} style={{ flex: 1, minWidth: 90, padding: '7px 10px', textAlign: 'center', borderRight: i < macroStrip.length - 1 ? '1px solid var(--border)' : 'none', flexShrink: 0 }}>
+              <div style={{ fontSize: 8, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>{m.label}</div>
+              <div className={m.dir} style={{ fontSize: 13, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, lineHeight: 1 }}>{m.val}</div>
+              <div className={m.dir} style={{ fontSize: 8, marginTop: 1, fontFamily: 'Source Code Pro, monospace' }}>{m.sub}</div>
+            </div>
+          ))}
         </div>
 
         {/* Chart header */}
@@ -278,102 +313,194 @@ export default function Terminal() {
           <div className="tradingview-widget-container__widget" style={{ height: '100%', width: '100%' }} />
         </div>
 
-        {/* ── LIVE NEWS SECTION ── */}
+        {/* ── INTELLIGENCE FEEDS ── */}
         <div style={{ borderTop: '2px solid var(--navy)', flexShrink: 0 }}>
 
-          {/* News header + category tabs */}
+          {/* Feed selector tabs */}
           <div style={{ padding: '10px 16px', background: 'var(--off)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 10, color: 'var(--navy)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 500 }}>Live news feed</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--green)', fontFamily: 'Source Code Pro, monospace' }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)', display: 'inline-block', animation: 'blink 1.5s infinite' }} />
-                {newsLoading ? 'Loading...' : `${news.length} stories · ${newsUpdate ? newsUpdate.toLocaleTimeString() : ''}`}
-              </span>
+            <div style={{ display: 'flex', gap: 3 }}>
+              {[['news','📰 News'],['reddit','🔴 Reddit / WSB'],['x','𝕏 Signals']].map(([v,l]) => (
+                <button key={v} onClick={() => setFeedView(v)} style={{
+                  background: feedView === v ? 'var(--navy)' : 'transparent',
+                  color: feedView === v ? 'var(--gold3)' : 'var(--text3)',
+                  border: `1px solid ${feedView === v ? 'var(--navy)' : 'var(--border)'}`,
+                  padding: '5px 12px', fontSize: 10, fontFamily: 'Source Code Pro, monospace',
+                  cursor: 'pointer', letterSpacing: '.5px'
+                }}>{l}</button>
+              ))}
             </div>
+
+            {/* Sub-tabs */}
             <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              {NEWS_CATS.map(c => (
+              {feedView === 'news' && NEWS_CATS.map(c => (
                 <button key={c} onClick={() => setNewsTab(c)} style={{
-                  background: newsTab === c ? 'var(--navy)' : 'transparent',
-                  color: newsTab === c ? 'var(--gold3)' : 'var(--text3)',
-                  border: `1px solid ${newsTab === c ? 'var(--navy)' : 'var(--border)'}`,
-                  padding: '3px 8px', fontSize: 9, fontFamily: 'Source Code Pro, monospace',
-                  cursor: 'pointer', borderRadius: 2
+                  background: newsTab === c ? 'var(--gold-light)' : 'transparent',
+                  color: newsTab === c ? 'var(--navy)' : 'var(--text3)',
+                  border: `1px solid ${newsTab === c ? 'var(--gold2)' : 'var(--border)'}`,
+                  padding: '3px 8px', fontSize: 9, fontFamily: 'Source Code Pro, monospace', cursor: 'pointer', borderRadius: 2
+                }}>{c}</button>
+              ))}
+              {feedView === 'reddit' && REDDIT_TABS.map(c => (
+                <button key={c} onClick={() => setRedditTab(c)} style={{
+                  background: redditTab === c ? 'var(--gold-light)' : 'transparent',
+                  color: redditTab === c ? 'var(--navy)' : 'var(--text3)',
+                  border: `1px solid ${redditTab === c ? 'var(--gold2)' : 'var(--border)'}`,
+                  padding: '3px 8px', fontSize: 9, fontFamily: 'Source Code Pro, monospace', cursor: 'pointer', borderRadius: 2
                 }}>{c}</button>
               ))}
             </div>
           </div>
 
-          {/* News grid */}
-          <div className="terminal-feeds" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-
-            {/* Left — news articles */}
-            <div style={{ borderRight: '1px solid var(--border)' }}>
-              <div style={{ padding: '8px 14px', background: 'var(--off)', borderBottom: '1px solid var(--border)', fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase' }}>
-                News articles
-              </div>
-              <div style={{ padding: '0 14px', maxHeight: 500, overflowY: 'auto' }}>
-                {newsLoading ? (
-                  <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 11, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace' }}>
-                    Fetching live news from 17 sources...
-                  </div>
-                ) : filteredNews.length === 0 ? (
-                  <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 11, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace' }}>
-                    No stories in this category yet
-                  </div>
-                ) : filteredNews.map((item, i) => {
-                  const sc = sentColor(item.sent)
-                  return (
-                    <div key={i} style={{ padding: '10px 0', borderBottom: i < filteredNews.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                        <span style={{ fontSize: 9, fontFamily: 'Source Code Pro, monospace', color: 'var(--gold2)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 500 }}>{item.src}</span>
-                        {item.cat && <span style={{ fontSize: 8, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace', border: '1px solid var(--border)', padding: '0 4px' }}>{item.cat}</span>}
+          {/* ── NEWS FEED ── */}
+          {feedView === 'news' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }} className="terminal-feeds">
+              <div style={{ borderRight: '1px solid var(--border)', maxHeight: 500, overflowY: 'auto' }}>
+                <div style={{ padding: '8px 14px', background: 'var(--off)', borderBottom: '1px solid var(--border)', fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', position: 'sticky', top: 0 }}>
+                  {newsLoading ? 'Fetching news...' : `${news.length} stories from 17 sources · ${newsUpdate ? newsUpdate.toLocaleTimeString() : ''}`}
+                </div>
+                <div style={{ padding: '0 14px' }}>
+                  {filteredNews.map((item, i) => {
+                    const sc = sentColor(item.sent)
+                    return (
+                      <div key={i} style={{ padding: '10px 0', borderBottom: i < filteredNews.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontSize: 9, fontFamily: 'Source Code Pro, monospace', color: 'var(--gold2)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 500 }}>{item.src}</span>
+                          {item.cat && <span style={{ fontSize: 8, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace', border: '1px solid var(--border)', padding: '0 4px' }}>{item.cat}</span>}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, marginBottom: 4 }}>
+                          {item.link ? <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} onMouseEnter={e => e.target.style.color='var(--navy)'} onMouseLeave={e => e.target.style.color='inherit'}>{item.hl}</a> : item.hl}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 9, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace' }}>{item.time}</span>
+                          <span style={{ fontSize: 9, padding: '1px 6px', fontFamily: 'Source Code Pro, monospace', fontWeight: 500, background: sc.bg, color: sc.color }}>{item.sent}</span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, marginBottom: 4 }}>
-                        {item.link ? (
-                          <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}
-                            onMouseEnter={e => e.target.style.color = 'var(--navy)'}
-                            onMouseLeave={e => e.target.style.color = 'inherit'}>
-                            {item.hl}
-                          </a>
-                        ) : item.hl}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 9, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace' }}>{item.time}</span>
-                        <span style={{ fontSize: 9, padding: '1px 6px', fontFamily: 'Source Code Pro, monospace', fontWeight: 500, background: sc.bg, color: sc.color }}>{item.sent}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Right — X signals (static for now — X API requires payment) */}
-            <div>
-              <div style={{ padding: '8px 14px', background: 'var(--off)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase' }}>Market signals — X</span>
-                <span style={{ fontSize: 8, fontFamily: 'Source Code Pro, monospace', padding: '2px 6px', background: 'rgba(232,160,32,.1)', color: '#8b6000', border: '1px solid rgba(232,160,32,.3)' }}>Monitored accounts</span>
-              </div>
-              <div style={{ padding: '0 14px', maxHeight: 500, overflowY: 'auto' }}>
-                {TWEETS.map((item, i) => {
-                  const sc = sentColor(item.sent)
-                  return (
-                    <div key={i} style={{ padding: '10px 0', borderBottom: i < TWEETS.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                      <div style={{ fontSize: 9, fontFamily: 'Source Code Pro, monospace', color: 'var(--gold2)', letterSpacing: 1, fontWeight: 500, marginBottom: 3 }}>{item.handle}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, marginBottom: 4 }}>{item.text}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 9, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace' }}>{item.time}</span>
-                        <span style={{ fontSize: 9, padding: '1px 6px', fontFamily: 'Source Code Pro, monospace', fontWeight: 500, background: sc.bg, color: sc.color }}>{item.sent}</span>
-                      </div>
-                    </div>
-                  )
-                })}
-                <div style={{ padding: '12px 0', fontSize: 10, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', lineHeight: 1.5, borderTop: '1px solid var(--border)' }}>
-                  Live X/Twitter feed requires the X API ($100/month). Currently showing curated signals from monitored accounts. This will be wired when budget allows.
+                    )
+                  })}
                 </div>
               </div>
+              <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+                <div style={{ padding: '8px 14px', background: 'var(--off)', borderBottom: '1px solid var(--border)', fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', position: 'sticky', top: 0 }}>
+                  Sentiment breakdown
+                </div>
+                {fearGreed && (
+                  <div style={{ padding: '14px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Fear & Greed Index — Live</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontFamily: 'Playfair Display, serif', fontSize: 36, fontWeight: 600, color: fearGreed.color }}>{fearGreed.value}</span>
+                      <span style={{ fontSize: 12, color: fearGreed.color, fontFamily: 'Source Code Pro, monospace' }}>{fearGreed.label}</span>
+                    </div>
+                    <div style={{ height: 8, background: 'linear-gradient(90deg,#8b1a1a,#e05252,#b8952e,#1a6b3a)', borderRadius: 4, marginBottom: 4, position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: -2, width: 12, height: 12, background: 'var(--navy)', borderRadius: '50%', left: `calc(${fearGreed.value}% - 6px)`, border: '2px solid white' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace' }}>
+                      <span>Extreme Fear</span><span>Extreme Greed</span>
+                    </div>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 6, fontFamily: 'Source Code Pro, monospace' }}>Change: {fearGreed.change}</div>
+                  </div>
+                )}
+                {reddit.sentiment && (
+                  <div style={{ padding: '14px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Reddit sentiment — Live</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                      <span className={reddit.sentiment.dir} style={{ fontFamily: 'Playfair Display, serif', fontSize: 28, fontWeight: 600 }}>{reddit.sentiment.score}%</span>
+                      <span className={reddit.sentiment.dir} style={{ fontSize: 12, fontFamily: 'Source Code Pro, monospace' }}>{reddit.sentiment.label}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, fontSize: 10, fontFamily: 'Source Code Pro, monospace' }}>
+                      <span className="up">▲ {reddit.sentiment.bulls} bullish</span>
+                      <span className="down">▼ {reddit.sentiment.bears} bearish</span>
+                      <span style={{ color: 'var(--text3)' }}>→ {reddit.sentiment.neutral} neutral</span>
+                    </div>
+                  </div>
+                )}
+                {globalCrypto && (
+                  <div style={{ padding: '14px' }}>
+                    <div style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Crypto market — Live</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {[
+                        ['BTC dominance', `${globalCrypto.btcDominance}%`],
+                        ['ETH dominance', `${globalCrypto.ethDominance}%`],
+                        ['Total market cap', globalCrypto.totalMarketCapFormatted],
+                        ['24h change', `${globalCrypto.marketCapChange24h >= 0 ? '▲' : '▼'} ${Math.abs(globalCrypto.marketCapChange24h).toFixed(2)}%`],
+                        ['Active cryptos', globalCrypto.activeCryptos?.toLocaleString()],
+                      ].map(([label, val]) => (
+                        <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontFamily: 'Source Code Pro, monospace', padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+                          <span style={{ color: 'var(--text3)' }}>{label}</span>
+                          <span style={{ color: 'var(--navy)', fontWeight: 500 }}>{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+          )}
 
-          </div>
+          {/* ── REDDIT FEED ── */}
+          {feedView === 'reddit' && (
+            <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+              <div style={{ padding: '8px 14px', background: 'var(--off)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, position: 'sticky', top: 0 }}>
+                <span style={{ fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, textTransform: 'uppercase' }}>
+                  {reddit.posts.length} posts from 6 subreddits
+                </span>
+                {reddit.sentiment && (
+                  <span className={reddit.sentiment.dir} style={{ fontSize: 9, fontFamily: 'Source Code Pro, monospace', fontWeight: 500 }}>
+                    Overall: {reddit.sentiment.label} ({reddit.sentiment.score}%)
+                  </span>
+                )}
+              </div>
+              <div style={{ padding: '0 14px' }}>
+                {filteredReddit.map((post, i) => {
+                  const sc = sentColor(post.sent)
+                  return (
+                    <div key={i} style={{ padding: '10px 0', borderBottom: i < filteredReddit.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 9, fontFamily: 'Source Code Pro, monospace', color: '#ff4500', fontWeight: 600 }}>{post.sub}</span>
+                        {post.flair && <span style={{ fontSize: 8, color: 'var(--text4)', border: '1px solid var(--border)', padding: '0 4px', fontFamily: 'Source Code Pro, monospace' }}>{post.flair}</span>}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, marginBottom: 4 }}>
+                        <a href={post.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} onMouseEnter={e => e.target.style.color='var(--navy)'} onMouseLeave={e => e.target.style.color='inherit'}>
+                          {post.title}
+                        </a>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 9, fontFamily: 'Source Code Pro, monospace' }}>
+                        <span style={{ color: 'var(--text4)' }}>{post.time}</span>
+                        <span style={{ color: 'var(--green)' }}>▲ {post.score?.toLocaleString()}</span>
+                        <span style={{ color: 'var(--text4)' }}>💬 {post.comments}</span>
+                        <span style={{ padding: '1px 6px', background: sc.bg, color: sc.color, fontWeight: 500 }}>{post.sent}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── X SIGNALS ── */}
+          {feedView === 'x' && (
+            <div style={{ maxHeight: 500, overflowY: 'auto', padding: '0 14px' }}>
+              <div style={{ padding: '8px 0', fontSize: 9, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>
+                Monitored accounts: @elonmusk · @realDonaldTrump · @zerohedge · @truflation · @eWhispers · @WatcherGuru · @CoinBureau · @inversebrah · @AltcoinGordon · @Hyperliquid_X
+              </div>
+              {TWEETS.map((item, i) => {
+                const sc = sentColor(item.sent)
+                return (
+                  <div key={i} style={{ padding: '10px 0', borderBottom: i < TWEETS.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <div style={{ fontSize: 9, fontFamily: 'Source Code Pro, monospace', color: 'var(--gold2)', letterSpacing: 1, fontWeight: 500, marginBottom: 3 }}>{item.handle}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.5, marginBottom: 4 }}>{item.text}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 9, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace' }}>{item.time}</span>
+                      <span style={{ fontSize: 9, padding: '1px 6px', fontFamily: 'Source Code Pro, monospace', fontWeight: 500, background: sc.bg, color: sc.color }}>{item.sent}</span>
+                    </div>
+                  </div>
+                )
+              })}
+              <div style={{ padding: '12px 0', fontSize: 10, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', lineHeight: 1.6, borderTop: '1px solid var(--border)' }}>
+                Live X feed requires X API ($100/month). Showing curated signals. Will be wired when platform generates subscription revenue.
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
