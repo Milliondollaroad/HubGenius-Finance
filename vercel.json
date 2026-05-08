@@ -32,7 +32,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://s.tradingview.com https://www.tradingview.com https://api.alternative.me https://api.coingecko.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; frame-src https://s.tradingview.com https://s3.tradingview.com https://www.tradingview.com; connect-src 'self' https://api.coingecko.com https://api.alternative.me https://query1.finance.yahoo.com https://api.allorigins.win https://cryptopanic.com https://www.reddit.com https://feeds.a.dj.com https://finance.yahoo.com https://coindesk.com https://cointelegraph.com https://decrypt.co https://theblock.co https://bitcoinmagazine.com https://www.investing.com https://feeds.marketwatch.com https://www.ft.com https://seekingalpha.com https://www.federalreserve.gov https://rss.nytimes.com https://oilprice.com https://www.mining.com https://api.allorigins.win; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://s.tradingview.com https://www.tradingview.com https://api.alternative.me https://api.coingecko.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; frame-src https://s.tradingview.com https://s3.tradingview.com https://www.tradingview.com; connect-src 'self' https://api.coingecko.com https://api.alternative.me https://query1.finance.yahoo.com https://api.allorigins.win https://cryptopanic.com https://www.reddit.com https://feeds.a.dj.com https://finance.yahoo.com https://coindesk.com https://cointelegraph.com https://decrypt.co https://theblock.co https://bitcoinmagazine.com https://www.investing.com https://feeds.marketwatch.com https://www.ft.com https://seekingalpha.com https://www.federalreserve.gov https://rss.nytimes.com https://oilprice.com https://www.mining.com wss://api.hyperliquid.xyz https://api.hyperliquid.xyz https://api.hyperliquid-testnet.xyz; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
         },
         {
           "key": "Cross-Origin-Opener-Policy",
@@ -49,11 +49,29 @@
       ]
     },
     {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/static/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(sitemap.xml|robots.txt)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
         }
       ]
     }

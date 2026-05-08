@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import DisclaimerBanner from './DisclaimerBanner'
 
 const links = [
   { label: 'Terms of Service', to: '/terms'   },
@@ -9,6 +10,7 @@ const links = [
 
 export default function Footer() {
   return (
+    <>
     <footer style={{
       background: 'var(--navy)', padding: '28px 32px',
       display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
@@ -45,5 +47,7 @@ export default function Footer() {
         ))}
       </div>
     </footer>
+    <DisclaimerBanner />
+    </>
   )
 }
