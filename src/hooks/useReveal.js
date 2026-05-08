@@ -1,4 +1,3 @@
-// src/hooks/useReveal.js
 import { useEffect } from 'react'
 
 export function useReveal() {
@@ -7,23 +6,16 @@ export function useReveal() {
       (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('visible')
+            entry.target.classList.add('hg-visible')
             observer.unobserve(entry.target)
           }
         })
       },
       { threshold: 0.05, rootMargin: '0px 0px -20px 0px' }
     )
-
-    // Small delay so DOM is fully painted before observing
     const timer = setTimeout(() => {
-      const els = document.querySelectorAll('.reveal')
-      els.forEach(el => observer.observe(el))
+      document.querySelectorAll('.hg-reveal').forEach(el => observer.observe(el))
     }, 100)
-
-    return () => {
-      clearTimeout(timer)
-      observer.disconnect()
-    }
+    return () => { clearTimeout(timer); observer.disconnect() }
   }, [])
 }
