@@ -20,18 +20,18 @@ const trust = [
 ]
 
 const stats = [
-  { val: 4,    suffix: '',   label: 'Asset classes'      },
-  { val: 13,   suffix: '',   label: 'Signal sources'     },
-  { val: 24,   suffix: '/7', label: 'Autonomous trading' },
-  { val: 0,    suffix: '$',  label: 'To start', prefix: '$' },
+  { val: 4,  suffix: '',  label: 'Asset classes'      },
+  { val: 13, suffix: '',  label: 'Signal sources'     },
+  { val: 24, suffix: '/7',label: 'Autonomous trading' },
+  { val: 0,  suffix: '$', label: 'To start', prefix: '$' },
 ]
 
 function StatCounter({ val, suffix, prefix, label }) {
   const ref = useRef(null)
-
   useEffect(() => {
     const el = ref.current
-    if (!el || val === 0) { if (el) el.textContent = prefix ? `${prefix}${val}` : `${val}${suffix}`; return }
+    if (!el) return
+    if (val === 0) { el.textContent = prefix ? `${prefix}${val}` : `${val}${suffix}`; return }
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return
       observer.disconnect()
@@ -46,7 +46,6 @@ function StatCounter({ val, suffix, prefix, label }) {
     observer.observe(el)
     return () => observer.disconnect()
   }, [val, suffix, prefix])
-
   return (
     <div style={{ padding: '22px 24px', textAlign: 'center', borderRight: '1px solid var(--border)' }}>
       <div ref={ref} style={{ fontFamily: 'Playfair Display, serif', fontSize: 34, fontWeight: 600, color: 'var(--navy)', lineHeight: 1 }}>
@@ -70,69 +69,91 @@ export default function Landing() {
 
   return (
     <div className="page-enter">
-      {/* Scanline effect */}
       <div className="scanline" />
 
-      {/* ── Hero ── */}
-      <div style={{ background: 'var(--navy)', padding: '80px 32px 64px', position: 'relative', overflow: 'hidden' }} className="grid-bg">
+      {/* ── Hero with video background ── */}
+      <div style={{ position: 'relative', overflow: 'hidden', minHeight: '560px', display: 'flex', alignItems: 'center' }}>
+
+        {/* Video background */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+          }}
+        >
+          <source src="/hero-bg.mp4" type="video/mp4" />
+        </video>
+
+        {/* Dark overlay — keeps text readable, preserves navy feel */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          background: 'linear-gradient(135deg, rgba(10,22,40,0.88) 0%, rgba(10,22,40,0.72) 50%, rgba(10,22,40,0.82) 100%)',
+        }} />
+
+        {/* Gold grid overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          backgroundImage: 'linear-gradient(rgba(184,149,46,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(184,149,46,0.05) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+          pointerEvents: 'none',
+        }} />
+
         {/* Radial glow */}
-        <div style={{ position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)', width: 600, height: 300, background: 'radial-gradient(ellipse, rgba(184,149,46,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{
+          position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
+          width: 600, height: 250,
+          background: 'radial-gradient(ellipse, rgba(184,149,46,0.1) 0%, transparent 70%)',
+          zIndex: 1, pointerEvents: 'none',
+        }} />
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
+        {/* Content */}
+        <div style={{ position: 'relative', zIndex: 2, width: '100%', padding: '80px 32px 64px', textAlign: 'center' }}>
+          <div style={{ maxWidth: 680, margin: '0 auto' }}>
 
-          {/* Eyebrow */}
-          <div className="hero-line hero-line-1" style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
-            <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, transparent, var(--gold3))' }} />
-            <span style={{ fontSize: 9, color: 'var(--gold3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 3 }}>INSTITUTIONAL-GRADE INTELLIGENCE</span>
-            <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, var(--gold3), transparent)' }} />
-          </div>
+            <div className="hero-line hero-line-1" style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
+              <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, transparent, var(--gold3))' }} />
+              <span style={{ fontSize: 9, color: 'var(--gold3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 3 }}>INSTITUTIONAL-GRADE INTELLIGENCE</span>
+              <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, var(--gold3), transparent)' }} />
+            </div>
 
-          {/* Title */}
-          <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 52, fontWeight: 600, color: 'var(--white)', lineHeight: 1.12, marginBottom: 20 }}>
-            <span className="hero-line hero-line-2" style={{ display: 'block' }}>Where Wall Street</span>
-            <span className="hero-line hero-line-3" style={{ display: 'block' }}>meets <em style={{ color: 'var(--gold3)' }}>decentralised</em></span>
-            <span className="hero-line hero-line-4" style={{ display: 'block' }}><em style={{ color: 'var(--gold3)' }}>finance</em></span>
-          </h1>
+            <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 52, fontWeight: 600, color: 'var(--white)', lineHeight: 1.12, marginBottom: 20 }}>
+              <span className="hero-line hero-line-2" style={{ display: 'block' }}>Where Wall Street</span>
+              <span className="hero-line hero-line-3" style={{ display: 'block' }}>meets <em style={{ color: 'var(--gold3)' }}>decentralised</em></span>
+              <span className="hero-line hero-line-4" style={{ display: 'block' }}><em style={{ color: 'var(--gold3)' }}>finance</em></span>
+            </h1>
 
-          <p className="hero-line hero-line-5" style={{ fontSize: 15, color: 'rgba(255,255,255,.6)', maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.8, fontWeight: 300 }}>
-            Real-time macro intelligence, AI-powered trade signals, and an autonomous bot trading Hyperliquid 24/7 — built for serious traders who demand institutional quality.
-          </p>
+            <p className="hero-line hero-line-5" style={{ fontSize: 15, color: 'rgba(255,255,255,.65)', maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.8, fontWeight: 300 }}>
+              Real-time macro intelligence, AI-powered trade signals, and an autonomous bot trading Hyperliquid 24/7 — built for serious traders who demand institutional quality.
+            </p>
 
-          {/* CTAs */}
-          <div className="hero-line hero-line-5" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => navigate('/terminal')}
-              className="btn-press"
-              style={{
-                background: 'var(--gold3)', color: 'var(--navy)', border: 'none',
-                padding: '13px 28px', fontSize: 12, fontFamily: 'Source Sans 3, sans-serif',
-                fontWeight: 700, cursor: 'pointer', letterSpacing: '.5px',
-                transition: 'background 0.2s, transform 0.12s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = '#e8c240'}
-              onMouseLeave={e => e.currentTarget.style.background = 'var(--gold3)'}
-            >
-              Open terminal →
-            </button>
-            <button
-              onClick={() => navigate('/bot')}
-              className="btn-press"
-              style={{
-                background: 'transparent', color: 'rgba(255,255,255,0.75)',
-                border: '1px solid rgba(255,255,255,0.2)', padding: '13px 28px',
-                fontSize: 12, fontFamily: 'Source Sans 3, sans-serif',
-                fontWeight: 500, cursor: 'pointer', letterSpacing: '.5px',
-                transition: 'border-color 0.2s, color 0.2s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold3)'; e.currentTarget.style.color = 'var(--gold3)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
-            >
-              View bot performance
-            </button>
-          </div>
+            <div className="hero-line hero-line-5" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/terminal')}
+                className="btn-press"
+                style={{ background: 'var(--gold3)', color: 'var(--navy)', border: 'none', padding: '13px 28px', fontSize: 12, fontFamily: 'Source Sans 3, sans-serif', fontWeight: 700, cursor: 'pointer', letterSpacing: '.5px', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#e8c240'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--gold3)'}
+              >Open terminal →</button>
+              <button
+                onClick={() => navigate('/bot')}
+                className="btn-press"
+                style={{ background: 'transparent', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.25)', padding: '13px 28px', fontSize: 12, fontFamily: 'Source Sans 3, sans-serif', fontWeight: 500, cursor: 'pointer', letterSpacing: '.5px', transition: 'border-color 0.2s, color 0.2s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold3)'; e.currentTarget.style.color = 'var(--gold3)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)' }}
+              >View bot performance</button>
+            </div>
 
-          <div className="hero-line hero-line-5" style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', marginTop: 28, fontFamily: 'Source Code Pro, monospace' }}>
-            Market data and AI signals for informational purposes only. Past performance does not guarantee future results.
+            <div className="hero-line hero-line-5" style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', marginTop: 28, fontFamily: 'Source Code Pro, monospace' }}>
+              Market data and AI signals for informational purposes only. Past performance does not guarantee future results.
+            </div>
           </div>
         </div>
       </div>
@@ -154,23 +175,16 @@ export default function Landing() {
           <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: 28, fontWeight: 600, color: 'var(--navy)', marginBottom: 8 }}>Institutional intelligence. Accessible price.</h2>
           <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 36, maxWidth: 520, lineHeight: 1.8 }}>Bloomberg Terminal costs $24,000/year. HubGenius Finance delivers the same quality of macro intelligence, news aggregation, and AI-powered signals — starting at $0.</p>
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 1, background: 'var(--border)' }} className="features">
           {features.map((f, i) => (
             <div
               key={f.n}
               className={`reveal reveal-d${(i % 3) + 1} card-lift`}
-              style={{
-                background: hoveredFeature === i ? 'var(--gold-light)' : 'var(--white)',
-                padding: '28px 24px',
-                borderTop: '3px solid transparent',
-                cursor: 'default',
-                transition: 'background 0.2s, border-color 0.2s',
-              }}
+              style={{ background: hoveredFeature === i ? 'var(--gold-light)' : 'var(--white)', padding: '28px 24px', borderTop: '3px solid transparent', cursor: 'default', transition: 'background 0.2s, border-color 0.2s' }}
               onMouseEnter={e => { setHoveredFeature(i); e.currentTarget.style.borderTopColor = 'var(--gold2)' }}
               onMouseLeave={e => { setHoveredFeature(null); e.currentTarget.style.borderTopColor = 'transparent' }}
             >
-              <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 30, color: 'var(--off3)', fontWeight: 600, marginBottom: 12, transition: 'color 0.2s', ...(hoveredFeature === i ? { color: 'var(--gold3)' } : {}) }}>{f.n}</div>
+              <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 30, color: hoveredFeature === i ? 'var(--gold3)' : 'var(--off3)', fontWeight: 600, marginBottom: 12, transition: 'color 0.2s' }}>{f.n}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 8, letterSpacing: '.3px' }}>{f.t}</div>
               <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>{f.d}</div>
             </div>
@@ -200,27 +214,16 @@ export default function Landing() {
         <div style={{ fontFamily: 'Playfair Display, serif', fontSize: 26, color: 'var(--navy)', marginBottom: 8, fontWeight: 600 }}>Join the waitlist</div>
         <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 24 }}>Be first when Pro subscriptions open. Free access always available immediately.</div>
         {joined ? (
-          <div style={{ fontSize: 11, color: 'var(--green)', fontFamily: 'Source Code Pro, monospace', letterSpacing: '.5px' }}>✓ You have been added to the waitlist. We will be in touch.</div>
+          <div style={{ fontSize: 11, color: 'var(--green)', fontFamily: 'Source Code Pro, monospace' }}>✓ You have been added to the waitlist. We will be in touch.</div>
         ) : (
-          <div style={{ display: 'flex', gap: 0, maxWidth: 400, margin: '0 auto', border: '1px solid var(--border2)', transition: 'border-color 0.2s' }}
-            onFocus={e => e.currentTarget.style.borderColor = 'var(--gold2)'}
-            onBlur={e => e.currentTarget.style.borderColor = 'var(--border2)'}
-          >
-            <input
-              value={email} onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && join()}
-              placeholder="your@email.com"
-              style={{ flex: 1, background: 'var(--white)', border: 'none', color: 'var(--text)', padding: '12px 16px', fontSize: 13, outline: 'none', fontFamily: 'Source Sans 3, sans-serif' }}
-            />
-            <button
-              onClick={join}
-              className="btn-press"
+          <div style={{ display: 'flex', gap: 0, maxWidth: 400, margin: '0 auto', border: '1px solid var(--border2)' }}>
+            <input value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && join()} placeholder="your@email.com"
+              style={{ flex: 1, background: 'var(--white)', border: 'none', color: 'var(--text)', padding: '12px 16px', fontSize: 13, outline: 'none', fontFamily: 'Source Sans 3, sans-serif' }} />
+            <button onClick={join} className="btn-press"
               style={{ background: 'var(--navy)', color: 'var(--gold3)', border: 'none', padding: '12px 20px', fontSize: 11, fontFamily: 'Source Sans 3, sans-serif', fontWeight: 600, cursor: 'pointer', letterSpacing: '.5px', whiteSpace: 'nowrap', transition: 'background 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.background = 'var(--navy2)'}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--navy)'}
-            >
-              Join waitlist
-            </button>
+            >Join waitlist</button>
           </div>
         )}
       </div>
