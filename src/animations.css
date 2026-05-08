@@ -1,186 +1,31 @@
-/* ═══════════════════════════════════════════════════════════
-   HubGenius Finance — Animation System
-═══════════════════════════════════════════════════════════ */
+.page-enter { animation: pageEnter 0.4s ease both; }
+@keyframes pageEnter { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-/* ── Page enter ── */
-.page-enter {
-  animation: pageEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@keyframes pageEnter {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Hero lines ── */
-@keyframes heroLine {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.hero-line {
-  opacity: 0;
-  animation: heroLine 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-.hero-line-1 { animation-delay: 0.05s; }
-.hero-line-2 { animation-delay: 0.15s; }
-.hero-line-3 { animation-delay: 0.28s; }
-.hero-line-4 { animation-delay: 0.40s; }
-.hero-line-5 { animation-delay: 0.52s; }
-
-/* ── Scroll reveal ── */
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-              transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-.reveal-d1 { transition-delay: 0.05s; }
-.reveal-d2 { transition-delay: 0.12s; }
-.reveal-d3 { transition-delay: 0.19s; }
-.reveal-d4 { transition-delay: 0.26s; }
-.reveal-d5 { transition-delay: 0.33s; }
-.reveal-d6 { transition-delay: 0.40s; }
-
-/* ── Card hover lift ── */
-.card-lift {
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.22s ease,
-              border-color 0.22s ease !important;
-}
-.card-lift:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 48px rgba(0,0,0,0.13) !important;
-}
-
-/* ── Button press ── */
-.btn-press {
-  transition: transform 0.1s ease !important;
-}
-.btn-press:active {
-  transform: scale(0.96) !important;
-}
-
-/* ── Pulse dot ── */
-@keyframes pulse-ring {
-  0%   { transform: scale(1);   opacity: 0.7; }
-  70%  { transform: scale(2.4); opacity: 0; }
-  100% { transform: scale(2.4); opacity: 0; }
-}
-.pulse-dot {
-  position: relative;
-  display: inline-block;
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: #2d9e5a;
-  vertical-align: middle;
-}
-.pulse-dot::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: #2d9e5a;
-  animation: pulse-ring 2s ease-out infinite;
-}
-
-/* ── Scanline ── */
-@keyframes scanline {
-  0%   { top: -2px; }
-  100% { top: 100vh; }
-}
-.scanline {
-  position: fixed;
-  left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(184,149,46,0.12), transparent);
-  animation: scanline 10s linear infinite;
-  pointer-events: none;
-  z-index: 9998;
-}
-
-/* ── Grid background ── */
-.grid-bg {
-  position: relative;
-}
-.grid-bg::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(184,149,46,0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(184,149,46,0.07) 1px, transparent 1px);
-  background-size: 48px 48px;
-  pointer-events: none;
-}
-
-/* ── Glow pulse ── */
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(184,149,46,0); }
-  50%       { box-shadow: 0 0 0 4px rgba(184,149,46,0.18); }
-}
-.glow-border {
-  animation: glow-pulse 3s ease-in-out infinite;
-}
-
-/* ── Section divider ── */
-.section-divider {
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold2), transparent);
-  opacity: 0.35;
-}
-
-/* ── Route loader bar ── */
 @keyframes hg-bar {
   from { transform: translateX(-100%); }
   to   { transform: translateX(300%); }
 }
 
-/* ── Button base styles ── */
-.btn-navy {
-  background: var(--navy);
-  color: var(--gold3);
-  border: none;
-  padding: 10px 24px;
-  font-size: 12px;
-  font-family: 'Source Sans 3', sans-serif;
-  font-weight: 600;
-  cursor: pointer;
-  letter-spacing: .5px;
-  transition: background 0.2s;
-}
-.btn-navy:hover { background: var(--navy2); }
+.card-lift { transition: transform 0.22s ease, box-shadow 0.22s ease !important; }
+.card-lift:hover { transform: translateY(-5px) !important; box-shadow: 0 16px 40px rgba(0,0,0,0.12) !important; }
 
-.btn-gold {
-  background: var(--gold3);
-  color: var(--navy);
-  border: none;
-  padding: 10px 24px;
-  font-size: 12px;
-  font-family: 'Source Sans 3', sans-serif;
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: .5px;
-  transition: background 0.2s;
+.btn-press:active { transform: scale(0.97); }
+
+.glow-border { animation: glowPulse 3s ease-in-out infinite; }
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(184,149,46,0); }
+  50%       { box-shadow: 0 0 0 4px rgba(184,149,46,0.18); }
 }
+
+.section-divider {
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, #b8952e, transparent);
+  opacity: 0.35;
+}
+
+.btn-navy { background: #0a1628; color: #d4aa3a; border: none; padding: 10px 24px; font-size: 12px; font-family: 'Source Sans 3', sans-serif; font-weight: 600; cursor: pointer; letter-spacing: .5px; transition: background 0.2s; }
+.btn-navy:hover { background: #112040; }
+.btn-gold { background: #d4aa3a; color: #0a1628; border: none; padding: 10px 24px; font-size: 12px; font-family: 'Source Sans 3', sans-serif; font-weight: 700; cursor: pointer; letter-spacing: .5px; transition: background 0.2s; }
 .btn-gold:hover { background: #e8c240; }
-
-.btn-outline-white {
-  background: transparent;
-  color: rgba(255,255,255,0.75);
-  border: 1px solid rgba(255,255,255,0.25);
-  padding: 10px 24px;
-  font-size: 12px;
-  font-family: 'Source Sans 3', sans-serif;
-  font-weight: 500;
-  cursor: pointer;
-  letter-spacing: .5px;
-  transition: border-color 0.2s, color 0.2s;
-}
-.btn-outline-white:hover {
-  border-color: var(--gold3);
-  color: var(--gold3);
-}
+.btn-outline-white { background: transparent; color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.25); padding: 10px 24px; font-size: 12px; font-family: 'Source Sans 3', sans-serif; font-weight: 500; cursor: pointer; letter-spacing: .5px; transition: border-color 0.2s, color 0.2s; }
+.btn-outline-white:hover { border-color: #d4aa3a; color: #d4aa3a; }
