@@ -18,6 +18,8 @@ const STYLES = `
   .hg-card:hover { transform:translateY(-5px) !important; box-shadow:0 16px 40px rgba(0,0,0,0.12) !important; }
   .hg-reveal { opacity:0; transform:translateY(24px); transition:opacity 0.6s ease,transform 0.6s ease; }
   .hg-visible { opacity:1 !important; transform:translateY(0) !important; }
+  .hg-btn-gold:hover { background:#e8c240 !important; }
+  .hg-btn-outline:hover { border-color:#d4aa3a !important; color:#d4aa3a !important; }
 `
 
 const features = [
@@ -99,60 +101,73 @@ export default function Landing() {
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <div className="hg-scan" />
 
-      {/* Hero with video background */}
-      <div style={{ position: 'relative', overflow: 'hidden', minHeight: '580px', display: 'flex', alignItems: 'center' }}>
+      {/* ── Hero — full video, text at bottom ── */}
+      <div style={{ position: 'relative', overflow: 'hidden', height: '100vh', maxHeight: '800px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
 
-        <video autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}>
+        {/* Full video — no overlay */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+          }}
+        >
           <source src="/hero-bg.mp4" type="video/mp4" />
         </video>
 
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(135deg, rgba(10,22,40,0.88) 0%, rgba(10,22,40,0.72) 50%, rgba(10,22,40,0.82) 100%)' }} />
+        {/* Only a gradient at the very bottom so text is readable */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0, left: 0, right: 0,
+          height: '65%',
+          background: 'linear-gradient(to top, rgba(10,22,40,0.95) 0%, rgba(10,22,40,0.7) 50%, transparent 100%)',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }} />
 
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, backgroundImage: 'linear-gradient(rgba(184,149,46,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(184,149,46,0.05) 1px, transparent 1px)', backgroundSize: '48px 48px', pointerEvents: 'none' }} />
+        {/* Text at the bottom */}
+        <div style={{ position: 'relative', zIndex: 2, padding: '0 32px 52px', maxWidth: 760, width: '100%' }}>
 
-        <div style={{ position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)', width: 600, height: 250, background: 'radial-gradient(ellipse, rgba(184,149,46,0.1) 0%, transparent 70%)', zIndex: 1, pointerEvents: 'none' }} />
+          <div className="hg-hl hg-hl1" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+            <div style={{ width: 32, height: 1, background: 'linear-gradient(90deg, transparent, #d4aa3a)' }} />
+            <span style={{ fontSize: 9, color: '#d4aa3a', fontFamily: 'Source Code Pro, monospace', letterSpacing: 3 }}>INSTITUTIONAL-GRADE INTELLIGENCE</span>
+          </div>
 
-        <div style={{ position: 'relative', zIndex: 2, width: '100%', padding: '80px 32px 64px', textAlign: 'center' }}>
-          <div style={{ maxWidth: 680, margin: '0 auto' }}>
+          <h1 style={{ fontFamily: 'Playfair Display, serif', fontWeight: 600, color: '#ffffff', lineHeight: 1.1, marginBottom: 16 }}>
+            <span className="hg-hl hg-hl2" style={{ display: 'block', fontSize: 'clamp(32px, 5vw, 58px)' }}>Where Wall Street</span>
+            <span className="hg-hl hg-hl3" style={{ display: 'block', fontSize: 'clamp(32px, 5vw, 58px)' }}>meets <em style={{ color: '#d4aa3a' }}>decentralised finance</em></span>
+          </h1>
 
-            <div className="hg-hl hg-hl1" style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', marginBottom: 24 }}>
-              <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, transparent, #d4aa3a)' }} />
-              <span style={{ fontSize: 9, color: '#d4aa3a', fontFamily: 'Source Code Pro, monospace', letterSpacing: 3 }}>INSTITUTIONAL-GRADE INTELLIGENCE</span>
-              <div style={{ width: 40, height: 1, background: 'linear-gradient(90deg, #d4aa3a, transparent)' }} />
-            </div>
+          <p className="hg-hl hg-hl4" style={{ fontSize: 15, color: 'rgba(255,255,255,.7)', maxWidth: 520, marginBottom: 28, lineHeight: 1.8, fontWeight: 300 }}>
+            Real-time macro intelligence, AI-powered trade signals, and an autonomous bot trading Hyperliquid 24/7.
+          </p>
 
-            <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: 52, fontWeight: 600, color: '#ffffff', lineHeight: 1.12, marginBottom: 20 }}>
-              <span className="hg-hl hg-hl2" style={{ display: 'block' }}>Where Wall Street</span>
-              <span className="hg-hl hg-hl3" style={{ display: 'block' }}>meets <em style={{ color: '#d4aa3a' }}>decentralised</em></span>
-              <span className="hg-hl hg-hl4" style={{ display: 'block' }}><em style={{ color: '#d4aa3a' }}>finance</em></span>
-            </h1>
+          <div className="hg-hl hg-hl5" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/terminal')}
+              className="hg-btn-gold"
+              style={{ background: '#d4aa3a', color: '#0a1628', border: 'none', padding: '13px 28px', fontSize: 12, fontFamily: 'Source Sans 3, sans-serif', fontWeight: 700, cursor: 'pointer', letterSpacing: '.5px', transition: 'background 0.2s, transform 0.1s' }}
+              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+            >Open terminal →</button>
+            <button
+              onClick={() => navigate('/bot')}
+              className="hg-btn-outline"
+              style={{ background: 'transparent', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.3)', padding: '13px 28px', fontSize: 12, fontFamily: 'Source Sans 3, sans-serif', fontWeight: 500, cursor: 'pointer', letterSpacing: '.5px', transition: 'border-color 0.2s, color 0.2s, transform 0.1s' }}
+              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+            >View bot performance</button>
+          </div>
 
-            <p className="hg-hl hg-hl5" style={{ fontSize: 15, color: 'rgba(255,255,255,.65)', maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.8, fontWeight: 300 }}>
-              Real-time macro intelligence, AI-powered trade signals, and an autonomous bot trading Hyperliquid 24/7 — built for serious traders who demand institutional quality.
-            </p>
-
-            <div className="hg-hl hg-hl5" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => navigate('/terminal')}
-                style={{ background: '#d4aa3a', color: '#0a1628', border: 'none', padding: '13px 28px', fontSize: 12, fontFamily: 'Source Sans 3, sans-serif', fontWeight: 700, cursor: 'pointer', letterSpacing: '.5px', transition: 'background 0.2s, transform 0.1s' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#e8c240'}
-                onMouseLeave={e => e.currentTarget.style.background = '#d4aa3a'}
-                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-              >Open terminal →</button>
-              <button
-                onClick={() => navigate('/bot')}
-                style={{ background: 'transparent', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.25)', padding: '13px 28px', fontSize: 12, fontFamily: 'Source Sans 3, sans-serif', fontWeight: 500, cursor: 'pointer', letterSpacing: '.5px', transition: 'border-color 0.2s, color 0.2s, transform 0.1s' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#d4aa3a'; e.currentTarget.style.color = '#d4aa3a' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)' }}
-                onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-                onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-              >View bot performance</button>
-            </div>
-
-            <div className="hg-hl hg-hl5" style={{ fontSize: 10, color: 'rgba(255,255,255,.2)', marginTop: 28, fontFamily: 'Source Code Pro, monospace' }}>
-              Market data and AI signals for informational purposes only. Past performance does not guarantee future results.
-            </div>
+          <div className="hg-hl hg-hl5" style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 20, fontFamily: 'Source Code Pro, monospace' }}>
+            Market data and AI signals for informational purposes only. Past performance does not guarantee future results.
           </div>
         </div>
       </div>
@@ -173,9 +188,8 @@ export default function Landing() {
             <span style={{ fontSize: 9, color: 'var(--gold2)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 3, textTransform: 'uppercase' }}>What we provide</span>
           </div>
           <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: 28, fontWeight: 600, color: 'var(--navy)', marginBottom: 8 }}>Institutional intelligence. Accessible price.</h2>
-          <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 36, maxWidth: 520, lineHeight: 1.8 }}>Bloomberg Terminal costs $24,000/year. HubGenius Finance delivers the same quality of macro intelligence, news aggregation, and AI-powered signals — starting at $0.</p>
+          <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 36, maxWidth: 520, lineHeight: 1.8 }}>Bloomberg Terminal costs $24,000/year. HubGenius Finance delivers the same quality — starting at $0.</p>
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 1, background: 'var(--border)' }} className="features">
           {features.map((f, i) => (
             <div
@@ -216,15 +230,9 @@ export default function Landing() {
           <div style={{ fontSize: 11, color: 'var(--green)', fontFamily: 'Source Code Pro, monospace' }}>✓ You have been added to the waitlist. We will be in touch.</div>
         ) : (
           <div style={{ display: 'flex', maxWidth: 400, margin: '0 auto', border: '1px solid var(--border2)' }}>
-            <input
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && join()}
-              placeholder="your@email.com"
-              style={{ flex: 1, background: 'var(--white)', border: 'none', color: 'var(--text)', padding: '12px 16px', fontSize: 13, outline: 'none', fontFamily: 'Source Sans 3, sans-serif' }}
-            />
-            <button
-              onClick={join}
+            <input value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && join()} placeholder="your@email.com"
+              style={{ flex: 1, background: 'var(--white)', border: 'none', color: 'var(--text)', padding: '12px 16px', fontSize: 13, outline: 'none', fontFamily: 'Source Sans 3, sans-serif' }} />
+            <button onClick={join}
               style={{ background: '#0a1628', color: '#d4aa3a', border: 'none', padding: '12px 20px', fontSize: 11, fontFamily: 'Source Sans 3, sans-serif', fontWeight: 600, cursor: 'pointer', letterSpacing: '.5px', whiteSpace: 'nowrap', transition: 'background 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.background = '#112040'}
               onMouseLeave={e => e.currentTarget.style.background = '#0a1628'}
