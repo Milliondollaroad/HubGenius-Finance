@@ -4,7 +4,7 @@ import { useCurrency } from '../context/CurrencyContext'
 import { RATES }       from '../assets'
 import CurrencyToggle  from './CurrencyToggle'
 
-const FEATURED = ['BTC','ETH','SOL','TSLA','NVDA','GOLD','OIL','SPX','DXY','US10Y']
+const FEATURED = ['BTC','ETH','SOL','TSLA','NVDA','GOLD','OIL','SPX','DXY','US10Y','AAPL','MSFT','BNB','DOGE','ADA','AVAX','LINK','MATIC']
 
 function fmtPrice(usd, currency) {
   if (usd == null) return '...'
@@ -15,44 +15,136 @@ function fmtPrice(usd, currency) {
   return `${symbol}${v.toFixed(4)}`
 }
 
+const TICKER_STYLES = `
+  @keyframes tickerScroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-outer { overflow: hidden; flex: 1; cursor: default; }
+  .ticker-track {
+    display: flex;
+    align-items: center;
+    width: max-content;
+    animation: tickerScroll 40s linear infinite;
+  }
+  .ticker-outer:hover .ticker-track {
+    animation-play-state: paused;
+  }
+  .ticker-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 20px;
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .ticker-item:hover { background: rgba(184,149,46,0.06); }
+`
+
 export default function Ticker() {
   const navigate          = useNavigate()
   const { prices, loading, lastUpdate } = usePrices()
   const { currency }      = useCurrency()
 
+  const items = FEATURED.map(id => {
+    const p  = prices[id]
+    const px = fmtPrice(p?.usd, currency)
+    const noConvert = ['DXY','US10Y','EURUSD','GBPUSD'].includes(id)
+    const display = noConvert && p?.usd
+      ? (id === 'US10Y' ? `${p.usd.toFixed(2)}%` : p.usd.toFixed(2))
+      : px
+    return { id, display, chg: p?.chg, dir: p?.dir, loading: loading && !p }
+  })
+
   return (
-    <div style={{ background: 'var(--off)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center' }}>
-      <div style={{ padding: '6px 12px', borderRight: '1px solid var(--border)', flexShrink: 0 }}>
+    <div style={{
+      background: 'var(--off)',
+      borderBottom: '1px solid var(--border)',
+      display: 'flex',
+      alignItems: 'center',
+      height: 36,
+    }}>
+      <style dangerouslySetInnerHTML={{ __html: TICKER_STYLES }} />
+
+      {/* Currency toggle — fixed left */}
+      <div style={{
+        padding: '0 12px',
+        borderRight: '1px solid var(--border)',
+        flexShrink: 0,
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+      }}>
         <CurrencyToggle compact={true} />
       </div>
-      <div style={{ display: 'flex', overflowX: 'auto', padding: '7px 12px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', flex: 1, alignItems: 'center', gap: 0 }}>
-        {FEATURED.map((id, i) => {
-          const p  = prices[id]
-          const px = fmtPrice(p?.usd, currency)
-          const noConvert = ['DXY','US10Y','EURUSD','GBPUSD'].includes(id)
-          const display = noConvert && p?.usd ? (id === 'US10Y' ? `${p.usd.toFixed(2)}%` : p.usd.toFixed(2)) : px
-          return (
-            <div key={id} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              {i > 0 && <span style={{ width: 1, height: 14, background: 'var(--border2)', margin: '0 14px', flexShrink: 0 }} />}
-              <div onClick={() => navigate('/terminal', { state: { asset: id } })}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <span style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'Source Code Pro, monospace', letterSpacing: 1, fontWeight: 500 }}>{id}</span>
-                <span style={{ fontSize: 11, fontFamily: 'Source Code Pro, monospace', fontWeight: 500, color: loading && !p ? 'var(--text4)' : 'var(--text)' }}>{display}</span>
-                {p?.chg && <span className={p.dir} style={{ fontSize: 10, fontFamily: 'Source Code Pro, monospace', fontWeight: 500 }}>{p.chg}</span>}
-              </div>
+
+      {/* Scrolling ticker */}
+      <div className="ticker-outer">
+        <div className="ticker-track">
+          {/* Duplicate items for seamless loop */}
+          {[...items, ...items].map((item, i) => (
+            <div
+              key={i}
+              className="ticker-item"
+              onClick={() => navigate('/terminal', { state: { asset: item.id } })}
+            >
+              <span style={{
+                fontSize: 10,
+                color: 'var(--text3)',
+                fontFamily: 'Source Code Pro, monospace',
+                letterSpacing: 1,
+                fontWeight: 500,
+              }}>{item.id}</span>
+              <span style={{
+                fontSize: 11,
+                fontFamily: 'Source Code Pro, monospace',
+                fontWeight: 500,
+                color: item.loading ? 'var(--text4)' : 'var(--text)',
+              }}>{item.display}</span>
+              {item.chg && (
+                <span style={{
+                  fontSize: 10,
+                  fontFamily: 'Source Code Pro, monospace',
+                  fontWeight: 500,
+                  color: item.dir === 'up' ? 'var(--green)' : 'var(--red)',
+                }}>{item.chg}</span>
+              )}
             </div>
-          )
-        })}
-        {lastUpdate && (
-          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 16, flexShrink: 0 }}>
-            <span style={{ width: 1, height: 14, background: 'var(--border2)', marginRight: 14 }} />
-            <span style={{ fontSize: 9, color: 'var(--text4)', fontFamily: 'Source Code Pro, monospace', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#2d9e5a', display: 'inline-block', animation: 'blink 1.5s infinite' }} />
-              Live · {lastUpdate.toLocaleTimeString()}
-            </span>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
+
+      {/* Live indicator — fixed right */}
+      {lastUpdate && (
+        <div style={{
+          padding: '0 12px',
+          borderLeft: '1px solid var(--border)',
+          flexShrink: 0,
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}>
+          <span style={{
+            width: 6, height: 6,
+            borderRadius: '50%',
+            background: '#2d9e5a',
+            display: 'inline-block',
+            animation: 'blink 1.5s infinite',
+            flexShrink: 0,
+          }} />
+          <span style={{
+            fontSize: 9,
+            color: 'var(--text4)',
+            fontFamily: 'Source Code Pro, monospace',
+            whiteSpace: 'nowrap',
+          }}>
+            {lastUpdate.toLocaleTimeString()}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
